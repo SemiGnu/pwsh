@@ -3,8 +3,12 @@ Set-Alias -Name k -Value kubectl
 kubectl completion powershell | Out-String | Invoke-Expression
 k completion powershell | Out-String | Invoke-Expression
 
+if (Get-Module -ListAvailable -Name posh-git) {
+	Import-Module posh-git
+}
+
 if(!(Test-Path "$HOME\.pwsh")) {
-	mkdir Remove-Item "$HOME\.pwsh"
+	New-Item -ItemType Directory -Path "$HOME\.pwsh" | Out-Null
 }
 
 function my-loc {"$($executionContext.SessionState.Path.CurrentLocation)".replace("$HOME", '~')}
