@@ -65,4 +65,19 @@ function prompt-k8s {
 	}
 }
 
-function prompt {"$CYAN$(my-loc) $(prompt-k8s)$GREEN$('➜ ' * ($nestedPromptLevel + 1))$WHITE"}
+
+function prompt-git {
+	if(Test-Path "$HOME\.pwsh\.git") {
+		$status = git status 2>$null
+		$branch = $status | Select-String -Pattern "^On branch (.*)$"
+		if ($branch.Matches.Count -eq 0) { return "" }
+		$branchName = $branch.Matches.Groups[1].Value
+		$branchColor = $GREEN
+		if ($branchName -eq "main" -or $branchName -eq "master") { $branchColor = $RED }
+		"$($BLUE)git:($branchColor$branchName$BLUE)$WHITE "
+	} else {
+		""
+	}
+}
+
+function prompt {"$CYAN$(my-loc) $(prompt-git)$(prompt-k8s)$GREEN$('➜ ' * ($nestedPromptLevel + 1))$WHITE"}
