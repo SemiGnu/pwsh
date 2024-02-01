@@ -74,7 +74,13 @@ function prompt-git {
 		$branchName = $branch.Matches.Groups[1].Value
 		$branchColor = $GREEN
 		if ($branchName -eq "main" -or $branchName -eq "master") { $branchColor = $RED }
-		"$($BLUE)git:($branchColor$branchName$BLUE)$WHITE "
+		$aheadMatch = $status | Select-String -Pattern "^Your branch .*ahead.*"
+		$behindMatch = $status | Select-String -Pattern "^Your branch .*behind.*"
+		$cleanMatch = $status | Select-String -Pattern "^nothing to commit, working tree clean$"
+		if($aheadMatch.Matches.Count -gt 0) {$up = "󰧆"}
+		if($behindMatch.Matches.Count -gt 0) {$down = "󰦸"}
+		if($cleanMatch.Matches.Count -eq 0) {$new = "󰓎"}
+		"$($BLUE)git:($branchColor$branchName$BLUE)$down$up$new$WHITE "
 	} else {
 		""
 	}
