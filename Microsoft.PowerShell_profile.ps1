@@ -1,5 +1,14 @@
+Set-PSReadlineKeyHandler -Key Tab -Function Complete
+
 Set-Alias -Name k -Value kubectl
 # Set-Alias -Name kns -Value k8s-set-namespace
+
+Set-Alias -Name lunch -Value C:\Users\vu70\git\semignu\lunchtime\LunchTime.Console\bin\Release\net8.0\LunchTime.Console.exe
+
+function start-gremlin {
+	& "C:\Program Files\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe" /PartitionCount=100 /EnableGremlinEndpoint
+}	
+
 kubectl completion powershell | Out-String | Invoke-Expression
 k completion powershell | Out-String | Invoke-Expression
 
@@ -20,8 +29,11 @@ $CYAN = "$([char]27)[96m"
 $WHITE = "$([char]27)[0m"
 
 function kube-info {
-	$capture = kubectl config get-contexts | Select-String -Pattern "^\*(\s+([^\s])+)+"
-	"$($capture.Matches.Groups[1].Captures[0].Value.Trim())/$($capture.Matches.Groups[1].Captures[3].Value.Trim())"
+	$currentContextLine = Get-Content -Raw $HOME\.kube\config | Select-String -Pattern "current-context: (.*)" 
+	$currentContext = $currentContextLine.Matches.Groups[1].Captures[0].Value.Trim()
+	$currentNamespaceLine = Get-Content -Raw $HOME\.kube\config | Select-String -Pattern "$currentContext.*\n    namespace: (.*)"
+	$currentNamespace = $currentNamespaceLine.Matches.Groups[1].Captures[0].Value.Trim()
+	return "$currentContext/$currentNamespace"
 }
 
 function k8s-set-namespace([string]$namespace) {
@@ -48,6 +60,14 @@ function kns {
 	k8s-set-namespace($namespace)
 }
 
+function az-info {
+	$profiles = cat $HOME\.azure\azureProfile.json | ConvertFrom-Json
+	$defaultProfile = $profiles.subscriptions | Where-Object -Property isDefault -eq True 
+	$username = $defaultProfile.user.name
+	$pos = $username.IndexOf("@")
+	return $username.Substring(0,$pos)
+}
+
 function prompt-toggle([string]$feature) {
 	
 	if(Test-Path "$HOME\.pwsh\.$feature") {
@@ -58,8 +78,21 @@ function prompt-toggle([string]$feature) {
 }
 
 function prompt-k8s {
-	if(Test-Path "$HOME\.pwsh\.k8s") {
-		"$($BLUE)k8s:($RED$(kube-info)$BLUE)$WHITE "
+	if((Test-Path "$HOME\.pwsh\.k8s") -And (Test-Path "$HOME\.kube\config")) {
+		$info = kube-info
+		$color = if ($info -like "*dev*") {$GREEN} else {$RED}
+		"$($BLUE)k8s:($color$info$BLUE)$WHITE "
+	} else {
+		""
+	}
+}
+
+
+function prompt-az {
+	if((Test-Path "$HOME\.pwsh\.az") -And (Test-Path "$HOME\.azure\azureProfile.json")) {
+		$info = az-info
+		$color = if ($info -like "*prod*") {$RED} else {$GREEN}
+		"$($BLUE)az:($color$info$BLUE)$WHITE "
 	} else {
 		""
 	}
@@ -74,16 +107,16 @@ function prompt-git {
 		$branchName = $branch.Matches.Groups[1].Value
 		$branchColor = $GREEN
 		if ($branchName -eq "main" -or $branchName -eq "master") { $branchColor = $RED }
-		$aheadMatch = $status | Select-String -Pattern "^Your branch .*ahead.*"
-		$behindMatch = $status | Select-String -Pattern "^Your branch .*behind.*"
+		$aheadMatch = $status | Select-String -Pattern "^Your branch .*(ahead|diverged).*"
+		$behindMatch = $status | Select-String -Pattern "^Your branch .*(behind|diverged).*"
 		$cleanMatch = $status | Select-String -Pattern "^nothing to commit, working tree clean$"
-		if($aheadMatch.Matches.Count -gt 0) {$up = "󰧆"}
-		if($behindMatch.Matches.Count -gt 0) {$down = "󰦸"}
-		if($cleanMatch.Matches.Count -eq 0) {$new = "󰓎"}
-		"$($BLUE)git:($branchColor$branchName$BLUE)$down$up$new$WHITE "
+		if($aheadMatch.Matches.Count -gt 0) {$up = "A"}
+		if($behindMatch.Matches.Count -gt 0) {$down = "B"}
+		if($cleanMatch.Matches.Count -eq 0) {$new = "*"}
+		"$($BLUE)git:($branchColor$branchName$BLUE)$up$down$new$WHITE "
 	} else {
 		""
 	}
 }
 
-function prompt {"$CYAN$(my-loc) $(prompt-git)$(prompt-k8s)$GREEN$('➜ ' * ($nestedPromptLevel + 1))$WHITE"}
+function prompt {"$CYAN$(my-loc) $(prompt-git)$(prompt-k8s)$(prompt-az)$GREEN$('➜ ' * ($nestedPromptLevel + 1))$WHITE"}
