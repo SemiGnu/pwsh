@@ -1,7 +1,7 @@
 Set-PSReadlineKeyHandler -Key Tab -Function Complete
 
 Set-Alias -Name k -Value kubectl
-# Set-Alias -Name kns -Value k8s-set-namespace
+# Set-Alias -Name kns -Value k8s-set-namespace     󰊢   󱃾
 
 Set-Alias -Name lunch -Value C:\Users\vu70\git\semignu\lunchtime\LunchTime.Console\bin\Release\net8.0\LunchTime.Console.exe
 
@@ -24,9 +24,25 @@ function my-loc {"$($executionContext.SessionState.Path.CurrentLocation)".replac
 
 $RED = "$([char]27)[91m"
 $GREEN = "$([char]27)[92m"
+$YELLOW = "$([char]27)[93m"
 $BLUE = "$([char]27)[94m"
+$PURPLE = "$([char]27)[95m"
 $CYAN = "$([char]27)[96m"
 $WHITE = "$([char]27)[0m"
+
+$BG_RED = "$([char]27)[41m"
+$BG_GREEN = "$([char]27)[42m"
+$BG_YELLOW = "$([char]27)[43m"
+$BG_BLUE = "$([char]27)[44m"
+$BG_PURPLE = "$([char]27)[45m"
+$BG_CYAN = "$([char]27)[46m"
+$BG_WHITE = "$([char]27)[0m"
+
+$START = ""
+$SLASH = ""
+$END = ""
+
+$TEST = "$RED$START$BG_PURPLE$SLASH$PURPLE$BG_BLUE$SLASH$WHITE$BLUE$END$WHITE HELLO WORLD"
 
 function kube-info {
 	$currentContextLine = Get-Content -Raw $HOME\.kube\config | Select-String -Pattern "current-context: (.*)" 
