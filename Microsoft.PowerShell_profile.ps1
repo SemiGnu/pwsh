@@ -1,3 +1,7 @@
+# Install-Module powershell-yaml
+Import-Module powershell-yaml
+
+
 Set-PSReadlineKeyHandler -Key Tab -Function Complete
 
 Set-Alias -Name k -Value kubectl
@@ -22,21 +26,25 @@ if(!(Test-Path "$HOME\.pwsh")) {
 
 function my-loc {"$($executionContext.SessionState.Path.CurrentLocation)".replace("$HOME", '~')}
 
+$BLACK = "$([char]27)[90m"
 $RED = "$([char]27)[91m"
 $GREEN = "$([char]27)[92m"
 $YELLOW = "$([char]27)[93m"
 $BLUE = "$([char]27)[94m"
 $PURPLE = "$([char]27)[95m"
 $CYAN = "$([char]27)[96m"
-$WHITE = "$([char]27)[0m"
+$WHITE = "$([char]27)[97m"
 
+$BG_BLACK = "$([char]27)[40m"
 $BG_RED = "$([char]27)[41m"
 $BG_GREEN = "$([char]27)[42m"
 $BG_YELLOW = "$([char]27)[43m"
 $BG_BLUE = "$([char]27)[44m"
 $BG_PURPLE = "$([char]27)[45m"
 $BG_CYAN = "$([char]27)[46m"
-$BG_WHITE = "$([char]27)[0m"
+$BG_WHITE = "$([char]27)[47m"
+
+$RESET = "$([char]27)[0m"
 
 $START = ""
 $SLASH = ""
@@ -45,10 +53,9 @@ $END = ""
 $TEST = "$RED$START$BG_PURPLE$SLASH$PURPLE$BG_BLUE$SLASH$WHITE$BLUE$END$WHITE HELLO WORLD"
 
 function kube-info {
-	$currentContextLine = Get-Content -Raw $HOME\.kube\config | Select-String -Pattern "current-context: (.*)" 
-	$currentContext = $currentContextLine.Matches.Groups[1].Captures[0].Value.Trim()
-	$currentNamespaceLine = Get-Content -Raw $HOME\.kube\config | Select-String -Pattern "$currentContext.*\n    namespace: (.*)"
-	$currentNamespace = $currentNamespaceLine.Matches.Groups[1].Captures[0].Value.Trim()
+	$currentContextObject = Get-Content -Raw $HOME\.kube\config | ConvertFrom-Yaml
+	$currentContext = $currentContextObject['current-context']
+	$currentNamespace = @($currentContextObject.contexts | Where { $_.name.Equals($currentContext)})[0].context.namespace
 	return "$currentContext/$currentNamespace"
 }
 
@@ -59,7 +66,7 @@ function k8s-set-namespace([string]$namespace) {
 Class K8sNameSpaces : System.Management.Automation.IValidateSetValuesGenerator {
     [string[]] GetValidValues() {
 		$ns = kubectl get namespaces | Select-String -Pattern "^[a-z-]+" -CaseSensitive
-        return [string[]] $ns.Matches.value | Select-Object -Skip 1
+        return [string[]] $ns.Matches.value | Select-Object # -Skip 1
     }
 }
 
